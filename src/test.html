@@ -10,16 +10,22 @@
         <h1>WebSocket Test</h1>
         <input type="text" id="messageInput" placeholder="Enter message" />
         <button id="sendButton">Send</button>
+        <input type="text" id="senderId" placeholder="Enter sender" />
+        <input type="text" id="reciverId" placeholder="Enter reciver" />
         <div id="messages"></div>
         <script>
             const ws = new WebSocket("ws://localhost:8000/ws"); // Adjust the URL as needed
             const messagesDiv = document.getElementById("messages");
             const messageInput = document.getElementById("messageInput");
             const sendButton = document.getElementById("sendButton");
+            const senderId = document.getElementById("senderId");
+            const reciverId = document.getElementById("reciverId");
 
             ws.onopen = () => {
                 console.log("WebSocket connection established");
                 messagesDiv.innerHTML += "<p>Connected to WebSocket server</p>";
+                // to powinno byc id mateusz
+                ws.send(1);
             };
 
             ws.onmessage = (event) => {
@@ -36,9 +42,18 @@
             sendButton.onclick = () => {
                 const message = messageInput.value;
                 if (message) {
-                    ws.send(message);
+                    // kocham js
+                    msg = {
+                        sender_id: senderId.value - 0,
+                        reciver_id: reciverId.value - 0,
+                        message: message,
+                        date: 0,
+                    };
+                    console.log("Sending message:", msg);
+                    ws.send(JSON.stringify(msg));
                     messagesDiv.innerHTML += `<p>Sent: ${message}</p>`;
                     messageInput.value = "";
+                    2;
                 }
             };
         </script>
