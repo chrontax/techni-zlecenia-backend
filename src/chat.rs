@@ -7,9 +7,12 @@ use axum::{
 };
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 
-use crate::db::{model::MessageInput, MsgListner};
+use crate::{
+    auth::Claims,
+    db::{MessageInput, MsgListner},
+    AppState,
+};
 
 use futures_util::{
     sink::SinkExt,
@@ -18,44 +21,23 @@ use futures_util::{
 
 use crate::db::{postgres::PostgresDb, Db};
 
-pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<PostgresDb>) -> Response {
-    ws.on_upgrade(move |socket| handle_socket(socket, state))
+pub async fn ws_handler(
+    ws: WebSocketUpgrade,
+    claims: Claims,
+    State(state): State<AppState<PostgresDb>>,
+) -> Response {
+    ws.on_upgrade(move |socket| handle_socket(socket, state.db, claims.sub))
 }
 
-async fn handle_socket(mut socket: WebSocket, state: PostgresDb) {
-    let id_msg = match socket.next().await {
-        Some(Ok(Message::Text(text))) => text,
-        Some(Ok(_)) => {
-            eprintln!("Expected text message for ID");
-            return;
-        }
-        Some(Err(e)) => {
-            eprintln!("WebSocket error: {}", e);
-            return;
-        }
-        None => {
-            eprintln!("Connection closed before sending ID");
-            return;
-        }
-    };
-
-    // Parse the ID as usize
-    let id: usize = match id_msg.parse() {
-        Ok(n) => n,
-        Err(_) => {
-            eprintln!("Invalid ID received: {}", id_msg);
-            return;
-        }
-    };
-
+async fn handle_socket(socket: WebSocket, db: PostgresDb, user_id: usize) {
     let (sender, receiver) = socket.split();
-    let state_clone = state.clone();
+    let state_clone = db.clone();
 
-    tokio::spawn(write(sender, state_clone, id));
-    tokio::spawn(read(receiver, state));
+    tokio::spawn(write(sender, state_clone, user_id));
+    tokio::spawn(read(receiver, db));
 }
 
-async fn read(mut receiver: SplitStream<WebSocket>, state: PostgresDb) {
+async fn read(mut receiver: SplitStream<WebSocket>, db: PostgresDb) {
     while let Some(result) = receiver.next().await {
         match result {
             Ok(Message::Text(text)) => match serde_json::from_str::<MessageStruct>(&text) {
@@ -66,7 +48,7 @@ async fn read(mut receiver: SplitStream<WebSocket>, state: PostgresDb) {
                         content: msg.message,
                     };
 
-                    if let Err(e) = state.create_message(input).await {
+                    if let Err(e) = db.create_message(input).await {
                         eprintln!("Failed to insert message: {e}");
                     }
                 }
@@ -88,11 +70,11 @@ async fn read(mut receiver: SplitStream<WebSocket>, state: PostgresDb) {
     }
 }
 
-async fn write(mut sender: SplitSink<WebSocket, Message>, state: PostgresDb, id: usize) {
-    let messaged_users = state.get_messaged_users(id).await.unwrap();
+async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: usize) {
+    let messaged_users = db.get_messaged_users(id).await.unwrap();
     // wyslij wszystkie wiadomosci do tego uzytkownika
     for user in messaged_users {
-        let messages = state
+        let messages = db
             .get_messages_between_users(id, user.user_id)
             .await
             .unwrap();
@@ -116,7 +98,7 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, state: PostgresDb, id:
             }
         }
     }
-    let listener = state.listen_for_messages(id).await.unwrap();
+    let listener = db.listen_for_messages(id).await.unwrap();
     loop {
         let message = listener.receive().await.unwrap();
         if sender

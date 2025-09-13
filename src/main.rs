@@ -13,7 +13,7 @@ mod chat;
 mod db;
 
 #[derive(Clone)]
-struct State<T: Db> {
+struct AppState<T: Db> {
     pub db: T,
 }
 
@@ -26,7 +26,7 @@ async fn main(
 
     let router = Router::new()
         .route("/ws", any(ws_handler))
-        .with_state(State {
+        .with_state(AppState {
             db: PostgresDb::new(pool),
         });
 
