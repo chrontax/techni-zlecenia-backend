@@ -6,11 +6,13 @@ use crate::{
     auth::init_keys,
     chat::ws_handler,
     db::{postgres::PostgresDb, Db},
+    routes::user,
 };
 
 mod auth;
 mod chat;
 mod db;
+mod routes;
 
 #[derive(Clone)]
 struct AppState<T: Db> {
@@ -26,6 +28,7 @@ async fn main(
 
     let router = Router::new()
         .route("/ws", any(ws_handler))
+        .nest("/user", user::router())
         .with_state(AppState {
             db: PostgresDb::new(pool),
         });

@@ -9,7 +9,7 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use jsonwebtoken::{decode, DecodingKey, EncodingKey, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Validation};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +52,7 @@ where
 {
     type Rejection = StatusCode;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
         let token;
         if let Ok(TypedHeader(Authorization(bearer))) =
             parts.extract::<TypedHeader<Authorization<Bearer>>>().await
@@ -71,4 +71,22 @@ where
         .map(|data| data.claims)
         .map_err(|_| StatusCode::UNAUTHORIZED)
     }
+}
+
+pub fn create_jwt(user_id: usize) -> Result<String, String> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_secs();
+    let claims = Claims {
+        sub: user_id,
+        iat: now,
+        exp: now + 60 * 60 * 24 * 30,
+    };
+    encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &KEYS.get().expect("Keys not initialized").enc,
+    )
+    .map_err(|e| e.to_string())
 }
