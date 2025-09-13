@@ -12,36 +12,33 @@ pub struct UserInput {
     pub password: String,
 }
 
-pub struct Offer {
-    pub offer_id: usize,
+pub struct Order {
+    pub order_id: usize,
     pub user_id: usize,
-    pub offer_name: String,
-    pub offer_desc: String,
+    pub order_name: String,
+    pub order_desc: String,
     pub price: f64,
-    pub max_orders: u32,
     pub image_urls: Vec<String>,
     pub created_at: u64,
 }
 
-pub struct OfferInput {
-    pub offer_name: String,
-    pub offer_desc: String,
+pub struct OrderInput {
+    pub order_name: String,
+    pub order_desc: String,
     pub price: f64,
-    pub max_orders: u32,
     pub image_urls: Vec<String>,
 }
 
-pub struct Order {
-    pub order_id: usize,
+pub struct Offer {
     pub offer_id: usize,
+    pub order_id: usize,
     pub user_id: usize,
     pub status: String,
-    pub ordered_at: u64,
+    pub created_at: u64,
 }
 
-pub struct OrderInput {
-    pub offer_id: usize,
-    pub user_id: usize,
+pub struct OfferInput {
+    pub order_id: usize,
 }
 
 pub struct Message {

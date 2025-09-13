@@ -62,15 +62,76 @@ impl Db for PostgresDb {
         Ok(())
     }
 
-    async fn create_offer(&self, offer: OfferInput) -> Result<Offer, String> {
+    async fn create_order(&self, order: OrderInput) -> Result<Order, String> {
+        Ok(Order {
+            order_id: 0,
+            user_id: 0,
+            order_name: order.order_name,
+            order_desc: order.order_desc,
+            price: order.price,
+            image_urls: order.image_urls,
+            created_at: 0,
+        })
+    }
+
+    async fn get_order_by_id(&self, order_id: usize) -> Result<Option<Order>, String> {
+        Ok(Some(Order {
+            order_id,
+            user_id: 1,
+            order_name: "Test order".to_string(),
+            order_desc: "This is a test order".to_string(),
+            price: 9.99,
+            image_urls: vec![],
+            created_at: 0,
+        }))
+    }
+
+    async fn get_orders_by_user_id(&self, user_id: usize) -> Result<Vec<Order>, String> {
+        Ok(vec![Order {
+            order_id: 1,
+            user_id,
+            order_name: "Test order".to_string(),
+            order_desc: "This is a test order".to_string(),
+            price: 9.99,
+            image_urls: vec![],
+            created_at: 0,
+        }])
+    }
+
+    async fn search_orders(&self, query: &str) -> Result<Vec<Order>, String> {
+        Ok(vec![Order {
+            order_id: 1,
+            user_id: 1,
+            order_name: query.to_string(),
+            order_desc: "This is a test order".to_string(),
+            price: 9.99,
+            image_urls: vec![],
+            created_at: 0,
+        }])
+    }
+
+    async fn update_order(&self, order_id: usize, order: OrderInput) -> Result<Order, String> {
+        Ok(Order {
+            order_id,
+            user_id: 1,
+            order_name: order.order_name,
+            order_desc: order.order_desc,
+            price: order.price,
+            image_urls: order.image_urls,
+            created_at: 0,
+        })
+    }
+
+    async fn delete_order(&self, order_id: usize) -> Result<(), String> {
+        Ok(())
+    }
+
+    async fn create_offer(&self, offer: OfferInput, user_id: usize) -> Result<Offer, String> {
         Ok(Offer {
             offer_id: 0,
-            user_id: 0,
-            offer_name: offer.offer_name,
-            offer_desc: offer.offer_desc,
-            price: offer.price,
-            max_orders: offer.max_orders,
-            image_urls: offer.image_urls,
+            order_id: offer.order_id,
+            user_id,
+            status: "pending".to_string(),
             created_at: 0,
         })
     }
@@ -78,12 +139,9 @@ impl Db for PostgresDb {
     async fn get_offer_by_id(&self, offer_id: usize) -> Result<Option<Offer>, String> {
         Ok(Some(Offer {
             offer_id,
+            order_id: 1,
             user_id: 1,
-            offer_name: "Test Offer".to_string(),
-            offer_desc: "This is a test offer".to_string(),
-            price: 9.99,
-            max_orders: 10,
-            image_urls: vec![],
+            status: "pending".to_string(),
             created_at: 0,
         }))
     }
@@ -91,97 +149,34 @@ impl Db for PostgresDb {
     async fn get_offers_by_user_id(&self, user_id: usize) -> Result<Vec<Offer>, String> {
         Ok(vec![Offer {
             offer_id: 1,
+            order_id: 1,
             user_id,
-            offer_name: "Test Offer".to_string(),
-            offer_desc: "This is a test offer".to_string(),
-            price: 9.99,
-            max_orders: 10,
-            image_urls: vec![],
+            status: "pending".to_string(),
             created_at: 0,
         }])
     }
 
-    async fn search_offers(&self, query: &str) -> Result<Vec<Offer>, String> {
+    async fn get_offers_by_order_id(&self, order_id: usize) -> Result<Vec<Offer>, String> {
         Ok(vec![Offer {
             offer_id: 1,
+            order_id,
             user_id: 1,
-            offer_name: query.to_string(),
-            offer_desc: "This is a test offer".to_string(),
-            price: 9.99,
-            max_orders: 10,
-            image_urls: vec![],
+            status: "pending".to_string(),
             created_at: 0,
         }])
     }
 
-    async fn update_offer(&self, offer_id: usize, offer: OfferInput) -> Result<Offer, String> {
+    async fn update_offer_status(&self, offer_id: usize, status: &str) -> Result<Offer, String> {
         Ok(Offer {
             offer_id,
+            order_id: 1,
             user_id: 1,
-            offer_name: offer.offer_name,
-            offer_desc: offer.offer_desc,
-            price: offer.price,
-            max_orders: offer.max_orders,
-            image_urls: offer.image_urls,
+            status: status.to_string(),
             created_at: 0,
         })
     }
 
     async fn delete_offer(&self, offer_id: usize) -> Result<(), String> {
-        Ok(())
-    }
-
-    async fn create_order(&self, order: OrderInput) -> Result<Order, String> {
-        Ok(Order {
-            order_id: 0,
-            offer_id: order.offer_id,
-            user_id: order.user_id,
-            status: "pending".to_string(),
-            ordered_at: 0,
-        })
-    }
-
-    async fn get_order_by_id(&self, order_id: usize) -> Result<Option<Order>, String> {
-        Ok(Some(Order {
-            order_id,
-            offer_id: 1,
-            user_id: 1,
-            status: "pending".to_string(),
-            ordered_at: 0,
-        }))
-    }
-
-    async fn get_orders_by_user_id(&self, user_id: usize) -> Result<Vec<Order>, String> {
-        Ok(vec![Order {
-            order_id: 1,
-            offer_id: 1,
-            user_id,
-            status: "pending".to_string(),
-            ordered_at: 0,
-        }])
-    }
-
-    async fn get_orders_by_offer_id(&self, offer_id: usize) -> Result<Vec<Order>, String> {
-        Ok(vec![Order {
-            order_id: 1,
-            offer_id,
-            user_id: 1,
-            status: "pending".to_string(),
-            ordered_at: 0,
-        }])
-    }
-
-    async fn update_order_status(&self, order_id: usize, status: &str) -> Result<Order, String> {
-        Ok(Order {
-            order_id,
-            offer_id: 1,
-            user_id: 1,
-            status: status.to_string(),
-            ordered_at: 0,
-        })
-    }
-
-    async fn delete_order(&self, order_id: usize) -> Result<(), String> {
         Ok(())
     }
 
