@@ -1,13 +1,16 @@
 use axum::Router;
+use axum::{routing::any, Router};
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
 
 use crate::{
     auth::init_keys,
+    chat::ws_handler,
     db::{postgres::PostgresDb, Db},
 };
 
 mod auth;
+mod chat;
 mod db;
 
 #[derive(Clone)]
@@ -22,9 +25,11 @@ async fn main(
 ) -> shuttle_axum::ShuttleAxum {
     init_keys(secrets.get("JWT_SECRET").unwrap().as_bytes());
 
-    let router = Router::new().with_state(State {
-        db: PostgresDb::new(pool),
-    });
+    let router = Router::new()
+        .route("/ws", any(ws_handler))
+        .with_state(State {
+            db: PostgresDb::new(pool),
+        });
 
     Ok(router.into())
 }
