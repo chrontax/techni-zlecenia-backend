@@ -15,7 +15,7 @@
         <div id="messages"></div>
         <script>
             const ws = new WebSocket(
-                "ws://localhost:8000/messages/listen?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImV4cCI6MTc2MDQzODEzMiwiaWF0IjoxNzU3ODQ2MTMyfQ.786PZ8UdwxpuiPbdgAJLixQ5TsLdpFMORmKpSxOsZOU",
+                "ws://localhost:8000/messages/listen?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsImV4cCI6MTc2MDQ0MzgwNCwiaWF0IjoxNzU3ODUxODA0fQ.N89e0O66aL-fJGsHNeJiApEM8oOreTUiJP0p1xoOkKc",
             ); // Adjust the URL as needed
             const messagesDiv = document.getElementById("messages");
             const messageInput = document.getElementById("messageInput");
@@ -26,8 +26,7 @@
             ws.onopen = () => {
                 console.log("WebSocket connection established");
                 messagesDiv.innerHTML += "<p>Connected to WebSocket server</p>";
-                // to powinno byc id mateusz
-            };
+                // to powinno byc id mateusz            };
 
             ws.onmessage = (event) => {
                 console.log("Message received:", event.data);

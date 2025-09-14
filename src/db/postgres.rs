@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use sqlx::{
     migrate,
     postgres::{PgListener, PgRow},
@@ -5,7 +6,7 @@ use sqlx::{
 };
 
 use crate::db::*;
-
+use chrono::NaiveDateTime;
 #[derive(Clone)]
 pub struct PostgresDb {
     pool: PgPool,
@@ -404,39 +405,73 @@ pub struct PostgresMsgListener {
     listener: PgListener,
 }
 
+use chrono::{DateTime, Utc};
+use serde::Deserializer;
+
+fn deserialize_sent_at<'de, D>(deserializer: D) -> Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    let naive_dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
+        .map_err(serde::de::Error::custom)?;
+    Ok(DateTime::<Utc>::from_utc(naive_dt, Utc).timestamp() as u64)
+}
+
+#[derive(Deserialize)]
+struct MessageTimestamp {
+    message_id: usize,
+    sender_id: usize,
+    receiver_id: usize,
+    content: String,
+    #[serde(deserialize_with = "deserialize_sent_at")]
+    sent_at: u64, // UNIX timestamp
+}
 impl MsgListner for PostgresMsgListener {
     async fn receive(&mut self) -> Result<Message, String> {
         let notification = self.listener.recv().await.map_err(|e| e.to_string())?;
-        serde_json::from_str::<Message>(notification.payload()).map_err(|e| e.to_string())
+
+        let msg: MessageTimestamp =
+            serde_json::from_str(notification.payload()).map_err(|e| e.to_string())?;
+
+        Ok(Message {
+            message_id: msg.message_id,
+            sender_id: msg.sender_id,
+            receiver_id: msg.receiver_id,
+            content: msg.content,
+            sent_at: msg.sent_at,
+        })
     }
 }
 
 impl From<PgRow> for Message {
     fn from(row: PgRow) -> Self {
+        let sent_at: NaiveDateTime = row.get("sent_at");
         Message {
-            message_id: row.get::<i64, _>("message_id") as usize,
-            sender_id: row.get::<i64, _>("sender_id") as usize,
-            receiver_id: row.get::<i64, _>("receiver_id") as usize,
+            message_id: row.get::<i32, _>("message_id") as usize,
+            sender_id: row.get::<i32, _>("sender_id") as usize,
+            receiver_id: row.get::<i32, _>("receiver_id") as usize,
             content: row.get("content"),
-            sent_at: row.get::<i64, _>("sent_at") as u64,
+            sent_at: sent_at.and_utc().timestamp() as u64, // convert to UNIX timestamp
         }
     }
 }
 
 impl From<PgRow> for User {
     fn from(row: PgRow) -> Self {
+        let created_at: NaiveDateTime = row.get("created_at");
         User {
-            user_id: row.get::<i64, _>("user_id") as usize,
+            user_id: row.get::<i32, _>("user_id") as usize,
             username: row.get("username"),
             email: row.get("email"),
             password_hash: row.get("password_hash"),
-            created_at: row.get::<i64, _>("created_at") as u64,
+            created_at: created_at.and_utc().timestamp() as u64,
         }
     }
 }
-
 impl From<PgRow> for Order {
     fn from(row: PgRow) -> Self {
+        let created_at: NaiveDateTime = row.get("created_at");
         Order {
             order_id: row.get::<i64, _>("order_id") as usize,
             user_id: row.get::<i64, _>("user_id") as usize,
@@ -444,32 +479,34 @@ impl From<PgRow> for Order {
             order_desc: row.get("order_desc"),
             price: row.get("price"),
             image_urls: row.get("image_urls"),
-            created_at: row.get::<i64, _>("created_at") as u64,
+            created_at: created_at.and_utc().timestamp() as u64,
         }
     }
 }
 
 impl From<PgRow> for Offer {
     fn from(row: PgRow) -> Self {
+        let created_at: NaiveDateTime = row.get("created_at");
         Offer {
             offer_id: row.get::<i64, _>("offer_id") as usize,
             order_id: row.get::<i64, _>("order_id") as usize,
             user_id: row.get::<i64, _>("user_id") as usize,
             status: row.get("status"),
-            created_at: row.get::<i64, _>("created_at") as u64,
+            created_at: created_at.and_utc().timestamp() as u64,
         }
     }
 }
 
 impl From<PgRow> for Review {
     fn from(row: PgRow) -> Self {
+        let created_at: NaiveDateTime = row.get("created_at");
         Review {
             review_id: row.get::<i64, _>("review_id") as usize,
             user_reviewed: row.get::<i64, _>("user_reviewed") as usize,
             user_reviewing: row.get::<i64, _>("user_reviewing") as usize,
             content: row.get("content"),
             rating: row.get::<i16, _>("rating") as u8,
-            created_at: row.get::<i64, _>("created_at") as u64,
+            created_at: created_at.and_utc().timestamp() as u64,
         }
     }
 }
