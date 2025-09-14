@@ -14,7 +14,9 @@
         <input type="text" id="reciverId" placeholder="Enter reciver" />
         <div id="messages"></div>
         <script>
-            const ws = new WebSocket("ws://localhost:8000/ws"); // Adjust the URL as needed
+            const ws = new WebSocket(
+                "ws://localhost:8000/ws?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEsImV4cCI6MTc2MDM1OTIyMSwiaWF0IjoxNzU3NzY3MjIxfQ.24YXoVqquTZnnJnTTGhHeayJWVxNga3AUvqMQyqWhS8",
+            ); // Adjust the URL as needed
             const messagesDiv = document.getElementById("messages");
             const messageInput = document.getElementById("messageInput");
             const sendButton = document.getElementById("sendButton");

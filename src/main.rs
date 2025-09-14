@@ -6,6 +6,7 @@ use crate::{
     auth::init_keys,
     chat::ws_handler,
     db::{postgres::PostgresDb, Db},
+    routes::messages,
     routes::user,
 };
 
@@ -27,7 +28,7 @@ async fn main(
     init_keys(secrets.get("JWT_SECRET").unwrap().as_bytes());
 
     let router = Router::new()
-        .route("/ws", any(ws_handler))
+        .nest("/messages", messages::router())
         .nest("/user", user::router())
         .with_state(AppState {
             db: PostgresDb::new(pool).await,
