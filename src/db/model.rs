@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 pub struct User {
     pub user_id: usize,
     pub username: String,
@@ -41,6 +43,7 @@ pub struct OfferInput {
     pub order_id: usize,
 }
 
+#[derive(Deserialize)]
 pub struct Message {
     pub message_id: usize,
     pub sender_id: usize,

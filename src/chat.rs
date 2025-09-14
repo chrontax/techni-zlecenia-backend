@@ -98,7 +98,7 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: us
             }
         }
     }
-    let listener = db.listen_for_messages(id).await.unwrap();
+    let mut listener = db.listen_for_messages(id).await.unwrap();
     loop {
         let message = listener.receive().await.unwrap();
         if sender

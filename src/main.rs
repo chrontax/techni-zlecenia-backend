@@ -30,7 +30,7 @@ async fn main(
         .route("/ws", any(ws_handler))
         .nest("/user", user::router())
         .with_state(AppState {
-            db: PostgresDb::new(pool),
+            db: PostgresDb::new(pool).await,
         });
 
     Ok(router.into())
