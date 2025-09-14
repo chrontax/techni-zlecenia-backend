@@ -56,7 +56,7 @@ BEGIN
         'sender_id', NEW.sender_id,
         'receiver_id', NEW.receiver_id,
         'content', NEW.content,
-        'created_at', NEW.created_at
+        'sent_at', NEW.sent_at
     );
 
     PERFORM pg_notify(NEW.receiver_id::text, payload::text);
