@@ -60,9 +60,9 @@ BEGIN
     );
 
     PERFORM pg_notify(NEW.receiver_id::text, payload::text);
-    PERFORM pg_notify(NEW.sender_id::text, payload::text)
+    PERFORM pg_notify(NEW.sender_id::text, payload::text);
 
-    RETURN;
+    RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
