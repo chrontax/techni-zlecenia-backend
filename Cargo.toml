@@ -17,3 +17,4 @@ shuttle-shared-db = { version = "0.57.0", features = ["postgres", "sqlx"] }
 sqlx = { version = "0.8.6", features = ["chrono"] }
 tokio = "1.28.2"
 chrono = "0.4.42"
+argon2 = "0.5.3"
