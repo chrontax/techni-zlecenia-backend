@@ -3,7 +3,7 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE orders (
@@ -13,7 +13,7 @@ CREATE TABLE orders (
     order_desc TEXT NOT NULL,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     image_urls VARCHAR(100) ARRAY NOT NULL DEFAULT '{}' CHECK (NULL != ANY(image_urls)),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TYPE offer_status AS ENUM ('pending', 'accepted', 'declined');
@@ -22,7 +22,7 @@ CREATE TABLE offers (
     order_id INT NOT NULL REFERENCES offers(offer_id) ON DELETE CASCADE,
     user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     status offer_status NOT NULL DEFAULT 'pending',
-    ordered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ordered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE messages (
@@ -30,7 +30,7 @@ CREATE TABLE messages (
     sender_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     receiver_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE reviews (
@@ -39,7 +39,7 @@ CREATE TABLE reviews (
     user_reviewing INT REFERENCES users(user_id) ON DELETE CASCADE,
     rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     content TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 

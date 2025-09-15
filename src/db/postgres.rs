@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use sqlx::{
     migrate,
@@ -6,7 +7,7 @@ use sqlx::{
 };
 
 use crate::db::*;
-use chrono::NaiveDateTime;
+
 #[derive(Clone)]
 pub struct PostgresDb {
     pool: PgPool,
@@ -27,17 +28,14 @@ impl Db for PostgresDb {
     type MsgListner = PostgresMsgListener;
 
     async fn create_user(&self, user: UserInput) -> Result<User, String> {
-        query("INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3)")
+        query("INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING *")
             .bind(&user.username)
             .bind(&user.email)
             .bind(&user.password) // Assumes the caller has hashed the password
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_user_by_username(&user.username)
-            .await
-            .map(|opt| opt.expect("User just created should exist"))
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn get_user_by_id(&self, user_id: usize) -> Result<Option<User>, String> {
@@ -79,18 +77,15 @@ impl Db for PostgresDb {
     }
 
     async fn update_user(&self, user_id: usize, user: UserInput) -> Result<User, String> {
-        query("UPDATE users SET username = $1, email = $2, password_hash = $3 WHERE user_id = $4")
+        query("UPDATE users SET username = $1, email = $2, password_hash = $3 WHERE user_id = $4 RETURNING *")
             .bind(&user.username)
             .bind(&user.email)
             .bind(&user.password) // Assumes the caller has hashed the password
             .bind(user_id as i64)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_user_by_id(user_id)
-            .await
-            .map(|opt| opt.expect("User just updated should exist"))
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn delete_user(&self, user_id: usize) -> Result<(), String> {
@@ -103,18 +98,17 @@ impl Db for PostgresDb {
         Ok(())
     }
 
-    async fn create_order(&self, order: OrderInput, user_id: usize) -> Result<(), String> {
-        query("INSERT INTO orders (user_id, order_name, order_desc, price, image_urls) VALUES ($1, $2, $3, $4, $5)")
+    async fn create_order(&self, order: OrderInput, user_id: usize) -> Result<Order, String> {
+        query("INSERT INTO orders (user_id, order_name, order_desc, price, image_urls) VALUES ($1, $2, $3, $4, $5) RETURNING *")
             .bind(user_id as i64)
             .bind(&order.order_name)
             .bind(&order.order_desc)
             .bind(order.price)
             .bind(&order.image_urls)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(())
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn get_order_by_id(&self, order_id: usize) -> Result<Option<Order>, String> {
@@ -149,19 +143,16 @@ impl Db for PostgresDb {
     }
 
     async fn update_order(&self, order_id: usize, order: OrderInput) -> Result<Order, String> {
-        query("UPDATE orders SET order_name = $1, order_desc = $2, price = $3, image_urls = $4 WHERE order_id = $5")
+        query("UPDATE orders SET order_name = $1, order_desc = $2, price = $3, image_urls = $4 WHERE order_id = $5 RETURNING *")
             .bind(&order.order_name)
             .bind(&order.order_desc)
             .bind(order.price)
             .bind(&order.image_urls)
             .bind(order_id as i64)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_order_by_id(order_id)
-            .await
-            .map(|opt| opt.expect("Order just updated should exist"))
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn delete_order(&self, order_id: usize) -> Result<(), String> {
@@ -174,15 +165,16 @@ impl Db for PostgresDb {
         Ok(())
     }
 
-    async fn create_offer(&self, offer: OfferInput, user_id: usize) -> Result<(), String> {
-        query("INSERT INTO offers (order_id, user_id, status) VALUES ($1, $2, 'pending')")
-            .bind(offer.order_id as i64)
-            .bind(user_id as i64)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(())
+    async fn create_offer(&self, offer: OfferInput, user_id: usize) -> Result<Offer, String> {
+        query(
+            "INSERT INTO offers (order_id, user_id, status) VALUES ($1, $2, 'pending') RETURNING *",
+        )
+        .bind(offer.order_id as i64)
+        .bind(user_id as i64)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| e.to_string())
+        .map(|row| row.into())
     }
 
     async fn get_offer_by_id(&self, offer_id: usize) -> Result<Option<Offer>, String> {
@@ -221,16 +213,13 @@ impl Db for PostgresDb {
     }
 
     async fn update_offer_status(&self, offer_id: usize, status: &str) -> Result<Offer, String> {
-        query("UPDATE offers SET status = $1 WHERE offer_id = $2")
+        query("UPDATE offers SET status = $1 WHERE offer_id = $2 RETURNING *")
             .bind(status)
             .bind(offer_id as i64)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_offer_by_id(offer_id)
-            .await
-            .map(|opt| opt.expect("Offer just updated should exist"))
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn delete_offer(&self, offer_id: usize) -> Result<(), String> {
@@ -243,29 +232,25 @@ impl Db for PostgresDb {
         Ok(())
     }
 
-    async fn create_message(&self, message: MessageInput) -> Result<(), String> {
-        query("INSERT INTO messages (sender_id, receiver_id, content) VALUES ($1, $2, $3)")
+    async fn create_message(&self, message: MessageInput) -> Result<Message, String> {
+        query("INSERT INTO messages (sender_id, receiver_id, content) VALUES ($1, $2, $3) RETURNING *")
             .bind(message.sender_id as i64)
             .bind(message.receiver_id as i64)
             .bind(&message.content)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(())
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn update_message(&self, message_id: usize, content: &str) -> Result<Message, String> {
         query("UPDATE messages SET content = $1 WHERE message_id = $2")
             .bind(content)
             .bind(message_id as i64)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_message_by_id(message_id)
-            .await
-            .map(|opt| opt.expect("Message just updated should exist"))
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn get_message_by_id(&self, message_id: usize) -> Result<Option<Message>, String> {
@@ -325,17 +310,16 @@ impl Db for PostgresDb {
         Ok(PostgresMsgListener { listener })
     }
 
-    async fn create_review(&self, review: ReviewInput) -> Result<(), String> {
-        query("INSERT INTO reviews (user_reviewed, user_reviewing, content, rating) VALUES ($1, $2, $3, $4)")
+    async fn create_review(&self, review: ReviewInput) -> Result<Review, String> {
+        query("INSERT INTO reviews (user_reviewed, user_reviewing, content, rating) VALUES ($1, $2, $3, $4) RETURNING *")
             .bind(review.user_reviewed as i64)
             .bind(review.user_reviewing as i64)
             .bind(&review.content)
             .bind(review.rating as i16)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(())
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn get_reviews_for_user(&self, user_id: usize) -> Result<Vec<Review>, String> {
@@ -375,19 +359,14 @@ impl Db for PostgresDb {
         content: &str,
         rating: u8,
     ) -> Result<Review, String> {
-        query("UPDATE reviews SET content = $1, rating = $2 WHERE review_id = $3")
+        query("UPDATE reviews SET content = $1, rating = $2 WHERE review_id = $3 RETURNING *")
             .bind(content)
             .bind(rating as i16)
             .bind(review_id as i64)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| e.to_string())?;
-
-        self.get_reviews_by_user(review_id).await.map(|opt| {
-            opt.into_iter()
-                .find(|r| r.review_id == review_id)
-                .expect("Review just updated should exist")
-        })
+            .map_err(|e| e.to_string())
+            .map(|row| row.into())
     }
 
     async fn delete_review(&self, review_id: usize) -> Result<(), String> {
@@ -405,73 +384,38 @@ pub struct PostgresMsgListener {
     listener: PgListener,
 }
 
-use chrono::{DateTime, Utc};
-use serde::Deserializer;
-
-fn deserialize_sent_at<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: &str = Deserialize::deserialize(deserializer)?;
-    let naive_dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
-        .map_err(serde::de::Error::custom)?;
-    Ok(DateTime::<Utc>::from_utc(naive_dt, Utc).timestamp() as u64)
-}
-
-#[derive(Deserialize)]
-struct MessageTimestamp {
-    message_id: usize,
-    sender_id: usize,
-    receiver_id: usize,
-    content: String,
-    #[serde(deserialize_with = "deserialize_sent_at")]
-    sent_at: u64, // UNIX timestamp
-}
 impl MsgListner for PostgresMsgListener {
     async fn receive(&mut self) -> Result<Message, String> {
         let notification = self.listener.recv().await.map_err(|e| e.to_string())?;
-
-        let msg: MessageTimestamp =
-            serde_json::from_str(notification.payload()).map_err(|e| e.to_string())?;
-
-        Ok(Message {
-            message_id: msg.message_id,
-            sender_id: msg.sender_id,
-            receiver_id: msg.receiver_id,
-            content: msg.content,
-            sent_at: msg.sent_at,
-        })
+        serde_json::from_str(notification.payload()).map_err(|e| e.to_string())
     }
 }
 
 impl From<PgRow> for Message {
     fn from(row: PgRow) -> Self {
-        let sent_at: NaiveDateTime = row.get("sent_at");
         Message {
             message_id: row.get::<i32, _>("message_id") as usize,
             sender_id: row.get::<i32, _>("sender_id") as usize,
             receiver_id: row.get::<i32, _>("receiver_id") as usize,
             content: row.get("content"),
-            sent_at: sent_at.and_utc().timestamp() as u64, // convert to UNIX timestamp
+            sent_at: row.get("sent_at"),
         }
     }
 }
 
 impl From<PgRow> for User {
     fn from(row: PgRow) -> Self {
-        let created_at: NaiveDateTime = row.get("created_at");
         User {
             user_id: row.get::<i32, _>("user_id") as usize,
             username: row.get("username"),
             email: row.get("email"),
             password_hash: row.get("password_hash"),
-            created_at: created_at.and_utc().timestamp() as u64,
+            created_at: row.get("created_at"),
         }
     }
 }
 impl From<PgRow> for Order {
     fn from(row: PgRow) -> Self {
-        let created_at: NaiveDateTime = row.get("created_at");
         Order {
             order_id: row.get::<i64, _>("order_id") as usize,
             user_id: row.get::<i64, _>("user_id") as usize,
@@ -479,34 +423,32 @@ impl From<PgRow> for Order {
             order_desc: row.get("order_desc"),
             price: row.get("price"),
             image_urls: row.get("image_urls"),
-            created_at: created_at.and_utc().timestamp() as u64,
+            created_at: row.get("created_at"),
         }
     }
 }
 
 impl From<PgRow> for Offer {
     fn from(row: PgRow) -> Self {
-        let created_at: NaiveDateTime = row.get("created_at");
         Offer {
             offer_id: row.get::<i64, _>("offer_id") as usize,
             order_id: row.get::<i64, _>("order_id") as usize,
             user_id: row.get::<i64, _>("user_id") as usize,
             status: row.get("status"),
-            created_at: created_at.and_utc().timestamp() as u64,
+            created_at: row.get("created_at"),
         }
     }
 }
 
 impl From<PgRow> for Review {
     fn from(row: PgRow) -> Self {
-        let created_at: NaiveDateTime = row.get("created_at");
         Review {
             review_id: row.get::<i64, _>("review_id") as usize,
             user_reviewed: row.get::<i64, _>("user_reviewed") as usize,
             user_reviewing: row.get::<i64, _>("user_reviewing") as usize,
             content: row.get("content"),
-            rating: row.get::<i16, _>("rating") as u8,
-            created_at: created_at.and_utc().timestamp() as u64,
+            rating: row.get::<i8, _>("rating") as u8,
+            created_at: row.get("created_at"),
         }
     }
 }
