@@ -1,10 +1,9 @@
-use axum::{routing::any, Router};
+use axum::Router;
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
 
 use crate::{
     auth::init_keys,
-    chat::ws_handler,
     db::{postgres::PostgresDb, Db},
     routes::messages,
     routes::user,

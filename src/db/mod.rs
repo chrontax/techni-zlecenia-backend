@@ -35,6 +35,7 @@ pub trait Db {
         user1_id: usize,
         user2_id: usize,
     ) -> Result<Vec<Message>, String>;
+    // to \/ trzeba na api reszte message adjesent nie
     async fn get_messaged_users(&self, user_id: usize) -> Result<Vec<User>, String>;
     async fn delete_message(&self, message_id: usize) -> Result<(), String>;
     async fn listen_for_messages(&self, user_id: usize) -> Result<Self::MsgListner, String>;

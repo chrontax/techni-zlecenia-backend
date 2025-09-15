@@ -26,7 +26,8 @@
             ws.onopen = () => {
                 console.log("WebSocket connection established");
                 messagesDiv.innerHTML += "<p>Connected to WebSocket server</p>";
-                // to powinno byc id mateusz            };
+                // to powinno byc id mateusz
+            };
 
             ws.onmessage = (event) => {
                 console.log("Message received:", event.data);

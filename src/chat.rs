@@ -72,7 +72,6 @@ async fn read(mut receiver: SplitStream<WebSocket>, db: PostgresDb) {
 
 async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: usize) {
     let messaged_users = db.get_messaged_users(id).await.unwrap();
-    // wyslij wszystkie wiadomosci do tego uzytkownika
     for user in messaged_users {
         let messages = db
             .get_messages_between_users(id, user.user_id)
