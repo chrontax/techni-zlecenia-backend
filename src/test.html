@@ -1,62 +1,60 @@
 <!--basic websocket message sending-->
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>WebSocket Test</title>
-    </head>
-    <body>
-        <h1>WebSocket Test</h1>
-        <input type="text" id="messageInput" placeholder="Enter message" />
-        <button id="sendButton">Send</button>
-        <input type="text" id="senderId" placeholder="Enter sender" />
-        <input type="text" id="reciverId" placeholder="Enter reciver" />
-        <div id="messages"></div>
-        <script>
-            const ws = new WebSocket(
-                "ws://localhost:8000/messages/listen?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImV4cCI6MTc2MDQzODEzMiwiaWF0IjoxNzU3ODQ2MTMyfQ.786PZ8UdwxpuiPbdgAJLixQ5TsLdpFMORmKpSxOsZOU",
-            ); // Adjust the URL as needed
-            const messagesDiv = document.getElementById("messages");
-            const messageInput = document.getElementById("messageInput");
-            const sendButton = document.getElementById("sendButton");
-            const senderId = document.getElementById("senderId");
-            const reciverId = document.getElementById("reciverId");
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test</title>
+  </head>
+  <body>
+    <h1>WebSocket Test</h1>
+    <input type="text" id="messageInput" placeholder="Enter message" />
+    <button id="sendButton">Send</button>
+    <input type="text" id="senderId" placeholder="Enter sender" />
+    <input type="text" id="reciverId" placeholder="Enter reciver" />
+    <div id="messages"></div>
+    <script>
+      const ws = new WebSocket(
+        "ws://localhost:8000/messages/listen?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImV4cCI6MTc2MDQzODEzMiwiaWF0IjoxNzU3ODQ2MTMyfQ.786PZ8UdwxpuiPbdgAJLixQ5TsLdpFMORmKpSxOsZOU",
+      ); // Adjust the URL as needed
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("messageInput");
+      const sendButton = document.getElementById("sendButton");
+      const senderId = document.getElementById("senderId");
+      const reciverId = document.getElementById("reciverId");
 
-            ws.onopen = () => {
-                console.log("WebSocket connection established");
-                messagesDiv.innerHTML += "<p>Connected to WebSocket server</p>";
-                // to powinno byc id mateusz
-            };
+      ws.onopen = () => {
+        console.log("WebSocket connection established");
+        messagesDiv.innerHTML += "<p>Connected to WebSocket server</p>";
+        // to powinno byc id mateusz
+      };
 
-            ws.onmessage = (event) => {
-                console.log("Message received:", event.data);
-                messagesDiv.innerHTML += `<p>Received: ${event.data}</p>`;
-            };
+      ws.onmessage = (event) => {
+        console.log("Message received:", event.data);
+        messagesDiv.innerHTML += `<p>Received: ${event.data}</p>`;
+      };
 
-            ws.onclose = () => {
-                console.log("WebSocket connection closed");
-                messagesDiv.innerHTML +=
-                    "<p>Disconnected from WebSocket server</p>";
-            };
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
+        messagesDiv.innerHTML += "<p>Disconnected from WebSocket server</p>";
+      };
 
-            sendButton.onclick = () => {
-                const message = messageInput.value;
-                if (message) {
-                    // kocham js
-                    msg = {
-                        sender_id: senderId.value - 0,
-                        reciver_id: reciverId.value - 0,
-                        message: message,
-                        date: 0,
-                    };
-                    console.log("Sending message:", msg);
-                    ws.send(JSON.stringify(msg));
-                    messagesDiv.innerHTML += `<p>Sent: ${message}</p>`;
-                    messageInput.value = "";
-                    2;
-                }
-            };
-        </script>
-    </body>
+      sendButton.onclick = () => {
+        const message = messageInput.value;
+        if (message) {
+          // kocham js
+          msg = {
+            sender_id: senderId.value - 0,
+            receiver_id: reciverId.value - 0,
+            content: message,
+          };
+          console.log("Sending message:", msg);
+          ws.send(JSON.stringify(msg));
+          messagesDiv.innerHTML += `<p>Sent: ${message}</p>`;
+          messageInput.value = "";
+          2;
+        }
+      };
+    </script>
+  </body>
 </html>

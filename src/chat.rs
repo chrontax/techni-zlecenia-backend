@@ -6,6 +6,7 @@ use axum::{
     response::Response,
 };
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -40,15 +41,9 @@ async fn handle_socket(socket: WebSocket, db: PostgresDb, user_id: usize) {
 async fn read(mut receiver: SplitStream<WebSocket>, db: PostgresDb) {
     while let Some(result) = receiver.next().await {
         match result {
-            Ok(Message::Text(text)) => match serde_json::from_str::<MessageStruct>(&text) {
+            Ok(Message::Text(text)) => match serde_json::from_str::<MessageInput>(&text) {
                 Ok(msg) => {
-                    let input = MessageInput {
-                        sender_id: msg.sender_id,
-                        receiver_id: msg.reciver_id,
-                        content: msg.message,
-                    };
-
-                    if let Err(e) = db.create_message(input).await {
+                    if let Err(e) = db.create_message(msg).await {
                         eprintln!("Failed to insert message: {e}");
                     }
                 }
@@ -79,16 +74,7 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: us
             .unwrap();
         for message in messages {
             if sender
-                .send(
-                    serde_json::to_string(&MessageStruct {
-                        sender_id: message.sender_id,
-                        reciver_id: message.receiver_id,
-                        message: message.content,
-                        date: message.sent_at,
-                    })
-                    .expect("")
-                    .into(),
-                )
+                .send(serde_json::to_string(&message).expect("").into())
                 .await
                 .is_err()
             {
@@ -101,16 +87,7 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: us
     loop {
         let message = listener.receive().await.unwrap();
         if sender
-            .send(
-                serde_json::to_string(&MessageStruct {
-                    sender_id: message.sender_id,
-                    reciver_id: message.receiver_id,
-                    message: message.content,
-                    date: message.sent_at,
-                })
-                .expect("")
-                .into(),
-            )
+            .send(serde_json::to_string(&message).expect("").into())
             .await
             .is_err()
         {
@@ -118,12 +95,4 @@ async fn write(mut sender: SplitSink<WebSocket, Message>, db: PostgresDb, id: us
             return;
         }
     }
-}
-
-#[derive(Serialize, Deserialize)]
-struct MessageStruct {
-    sender_id: usize,
-    reciver_id: usize,
-    message: String,
-    date: u64,
 }
