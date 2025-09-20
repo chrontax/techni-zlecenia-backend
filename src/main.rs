@@ -5,8 +5,7 @@ use sqlx::PgPool;
 use crate::{
     auth::init_keys,
     db::{postgres::PostgresDb, Db},
-    routes::messages,
-    routes::user,
+    routes::{messages, offers, orders, reviews, user},
 };
 
 mod auth;
@@ -27,7 +26,10 @@ async fn main(
     init_keys(secrets.get("JWT_SECRET").unwrap().as_bytes());
 
     let router = Router::new()
-        .nest("/messages", messages::router())
+        .nest("/", messages::router())
+        .nest("/", offers::router())
+        .nest("/", orders::router())
+        .nest("/", reviews::router())
         .nest("/user", user::router())
         .with_state(AppState {
             db: PostgresDb::new(pool).await,

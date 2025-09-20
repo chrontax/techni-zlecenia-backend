@@ -14,6 +14,7 @@ use serde::Deserialize;
 use crate::{
     auth::{create_jwt, Claims},
     db::{postgres::PostgresDb, Db, UserInput},
+    routes::SearchQuery,
     AppState,
 };
 
@@ -67,11 +68,6 @@ async fn register_handler<D: Db>(
         Ok(user) => (StatusCode::CREATED, Json(user)).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     }
-}
-
-#[derive(Deserialize)]
-struct SearchQuery {
-    query: String,
 }
 
 async fn search_handler<D: Db>(
