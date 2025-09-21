@@ -26,10 +26,10 @@ async fn main(
     init_keys(secrets.get("JWT_SECRET").unwrap().as_bytes());
 
     let router = Router::new()
-        .nest("/", messages::router())
-        .nest("/", offers::router())
-        .nest("/", orders::router())
-        .nest("/", reviews::router())
+        .merge(messages::router())
+        .merge(offers::router())
+        .merge(orders::router())
+        .merge(reviews::router())
         .nest("/user", user::router())
         .with_state(AppState {
             db: PostgresDb::new(pool).await,
