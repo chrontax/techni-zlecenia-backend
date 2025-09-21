@@ -1,5 +1,3 @@
-use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use sqlx::{
     migrate,
     postgres::{PgListener, PgRow},
@@ -66,7 +64,7 @@ impl Db for PostgresDb {
     }
 
     async fn search_users(&self, query: &str) -> Result<Vec<User>, String> {
-        Ok(sqlx::query("SELECT user_id, username, email, password_hash, created_at FROM users ORDER BY SILIMILARITY(username, $1) DESC LIMIT 10")
+        Ok(sqlx::query("SELECT user_id, username, email, password_hash, created_at FROM users ORDER BY SIMILARITY(username, $1) DESC LIMIT 10")
             .bind(query)
             .fetch_all(&self.pool)
             .await
