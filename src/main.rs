@@ -1,6 +1,7 @@
 use axum::Router;
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
+use tower_http::cors::CorsLayer;
 
 use crate::{
     auth::init_keys,
@@ -31,6 +32,7 @@ async fn main(
         .merge(orders::router())
         .merge(reviews::router())
         .nest("/user", user::router())
+        .layer(CorsLayer::permissive())
         .with_state(AppState {
             db: PostgresDb::new(pool).await,
         });
