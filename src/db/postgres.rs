@@ -38,7 +38,7 @@ impl Db for PostgresDb {
 
     async fn get_user_by_id(&self, user_id: usize) -> Result<Option<User>, String> {
         Ok(query("SELECT user_id, username, email, password_hash, created_at FROM users WHERE user_id = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -79,7 +79,7 @@ impl Db for PostgresDb {
             .bind(&user.username)
             .bind(&user.email)
             .bind(&user.password) // Assumes the caller has hashed the password
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| e.to_string())
@@ -88,7 +88,7 @@ impl Db for PostgresDb {
 
     async fn delete_user(&self, user_id: usize) -> Result<(), String> {
         query("DELETE FROM users WHERE user_id = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .execute(&self.pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -98,7 +98,7 @@ impl Db for PostgresDb {
 
     async fn create_order(&self, order: OrderInput, user_id: usize) -> Result<Order, String> {
         query("INSERT INTO orders (user_id, order_name, order_desc, price, image_urls) VALUES ($1, $2, $3, $4, $5) RETURNING *")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .bind(&order.order_name)
             .bind(&order.order_desc)
             .bind(order.price)
@@ -111,7 +111,7 @@ impl Db for PostgresDb {
 
     async fn get_order_by_id(&self, order_id: usize) -> Result<Option<Order>, String> {
         Ok(query("SELECT order_id, user_id, order_name, order_desc, price, image_urls, created_at FROM orders WHERE order_id = $1")
-            .bind(order_id as i64)
+            .bind(order_id as i32)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -120,7 +120,7 @@ impl Db for PostgresDb {
 
     async fn get_orders_by_user_id(&self, user_id: usize) -> Result<Vec<Order>, String> {
         Ok(query("SELECT order_id, user_id, order_name, order_desc, price, image_urls, created_at FROM orders WHERE user_id = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -146,7 +146,7 @@ impl Db for PostgresDb {
             .bind(&order.order_desc)
             .bind(order.price)
             .bind(&order.image_urls)
-            .bind(order_id as i64)
+            .bind(order_id as i32)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| e.to_string())
@@ -155,7 +155,7 @@ impl Db for PostgresDb {
 
     async fn delete_order(&self, order_id: usize) -> Result<(), String> {
         query("DELETE FROM orders WHERE order_id = $1")
-            .bind(order_id as i64)
+            .bind(order_id as i32)
             .execute(&self.pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -167,8 +167,8 @@ impl Db for PostgresDb {
         query(
             "INSERT INTO offers (order_id, user_id, status) VALUES ($1, $2, 'pending') RETURNING *",
         )
-        .bind(offer.order_id as i64)
-        .bind(user_id as i64)
+        .bind(offer.order_id as i32)
+        .bind(user_id as i32)
         .fetch_one(&self.pool)
         .await
         .map_err(|e| e.to_string())
@@ -177,7 +177,7 @@ impl Db for PostgresDb {
 
     async fn get_offer_by_id(&self, offer_id: usize) -> Result<Option<Offer>, String> {
         Ok(query("SELECT offer_id, order_id, user_id, status, created_at FROM offers WHERE offer_id = $1")
-            .bind(offer_id as i64)
+            .bind(offer_id as i32)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -188,7 +188,7 @@ impl Db for PostgresDb {
         Ok(query(
             "SELECT offer_id, order_id, user_id, status, created_at FROM offers WHERE user_id = $1",
         )
-        .bind(user_id as i64)
+        .bind(user_id as i32)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| e.to_string())?
@@ -201,7 +201,7 @@ impl Db for PostgresDb {
         Ok(query(
             "SELECT offer_id, order_id, user_id, status, created_at FROM offers WHERE order_id = $1",
         )
-        .bind(order_id as i64)
+        .bind(order_id as i32)
         .fetch_all(&self.pool)
         .await
         .map_err(|e| e.to_string())?
@@ -213,7 +213,7 @@ impl Db for PostgresDb {
     async fn update_offer_status(&self, offer_id: usize, status: &str) -> Result<Offer, String> {
         query("UPDATE offers SET status = $1 WHERE offer_id = $2 RETURNING *")
             .bind(status)
-            .bind(offer_id as i64)
+            .bind(offer_id as i32)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| e.to_string())
@@ -222,7 +222,7 @@ impl Db for PostgresDb {
 
     async fn delete_offer(&self, offer_id: usize) -> Result<(), String> {
         query("DELETE FROM offers WHERE offer_id = $1")
-            .bind(offer_id as i64)
+            .bind(offer_id as i32)
             .execute(&self.pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -232,8 +232,8 @@ impl Db for PostgresDb {
 
     async fn create_message(&self, message: MessageInput) -> Result<Message, String> {
         query("INSERT INTO messages (sender_id, receiver_id, content) VALUES ($1, $2, $3) RETURNING *")
-            .bind(message.sender_id as i64)
-            .bind(message.receiver_id as i64)
+            .bind(message.sender_id as i32)
+            .bind(message.receiver_id as i32)
             .bind(&message.content)
             .fetch_one(&self.pool)
             .await
@@ -244,7 +244,7 @@ impl Db for PostgresDb {
     async fn update_message(&self, message_id: usize, content: &str) -> Result<Message, String> {
         query("UPDATE messages SET content = $1 WHERE message_id = $2")
             .bind(content)
-            .bind(message_id as i64)
+            .bind(message_id as i32)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| e.to_string())
@@ -253,7 +253,7 @@ impl Db for PostgresDb {
 
     async fn get_message_by_id(&self, message_id: usize) -> Result<Option<Message>, String> {
         Ok(query("SELECT message_id, sender_id, receiver_id, content, sent_at FROM messages WHERE message_id = $1")
-            .bind(message_id as i64)
+            .bind(message_id as i32)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -266,8 +266,8 @@ impl Db for PostgresDb {
         user2_id: usize,
     ) -> Result<Vec<Message>, String> {
         Ok(query("SELECT message_id, sender_id, receiver_id, content, sent_at FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1) ORDER BY sent_at ASC")
-            .bind(user1_id as i64)
-            .bind(user2_id as i64)
+            .bind(user1_id as i32)
+            .bind(user2_id as i32)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -278,7 +278,7 @@ impl Db for PostgresDb {
 
     async fn get_messaged_users(&self, user_id: usize) -> Result<Vec<User>, String> {
         Ok(query("SELECT DISTINCT u.user_id, u.username, u.email, u.password_hash, u.created_at FROM users u JOIN messages m ON (u.user_id = m.sender_id OR u.user_id = m.receiver_id) WHERE m.sender_id = $1 OR m.receiver_id = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -289,7 +289,7 @@ impl Db for PostgresDb {
 
     async fn delete_message(&self, message_id: usize) -> Result<(), String> {
         query("DELETE FROM messages WHERE message_id = $1")
-            .bind(message_id as i64)
+            .bind(message_id as i32)
             .execute(&self.pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -310,8 +310,8 @@ impl Db for PostgresDb {
 
     async fn create_review(&self, review: ReviewInput) -> Result<Review, String> {
         query("INSERT INTO reviews (user_reviewed, user_reviewing, content, rating) VALUES ($1, $2, $3, $4) RETURNING *")
-            .bind(review.user_reviewed as i64)
-            .bind(review.user_reviewing as i64)
+            .bind(review.user_reviewed as i32)
+            .bind(review.user_reviewing as i32)
             .bind(&review.content)
             .bind(review.rating as i16)
             .fetch_one(&self.pool)
@@ -322,7 +322,7 @@ impl Db for PostgresDb {
 
     async fn get_reviews_for_user(&self, user_id: usize) -> Result<Vec<Review>, String> {
         Ok(query("SELECT review_id, user_reviewed, user_reviewing, content, rating, created_at FROM reviews WHERE user_reviewed = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -333,7 +333,7 @@ impl Db for PostgresDb {
 
     async fn get_reviews_by_user(&self, user_id: usize) -> Result<Vec<Review>, String> {
         Ok(query("SELECT review_id, user_reviewed, user_reviewing, content, rating, created_at FROM reviews WHERE user_reviewing = $1")
-            .bind(user_id as i64)
+            .bind(user_id as i32)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -344,7 +344,7 @@ impl Db for PostgresDb {
 
     async fn get_review_by_id(&self, review_id: usize) -> Result<Option<Review>, String> {
         Ok(query("SELECT review_id, user_reviewed, user_reviewing, content, rating, created_at FROM reviews WHERE review_id = $1")
-            .bind(review_id as i64)
+            .bind(review_id as i32)
             .fetch_optional(&self.pool)
             .await
             .map_err(|e| e.to_string())?
@@ -360,7 +360,7 @@ impl Db for PostgresDb {
         query("UPDATE reviews SET content = $1, rating = $2 WHERE review_id = $3 RETURNING *")
             .bind(content)
             .bind(rating as i16)
-            .bind(review_id as i64)
+            .bind(review_id as i32)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| e.to_string())
@@ -369,7 +369,7 @@ impl Db for PostgresDb {
 
     async fn delete_review(&self, review_id: usize) -> Result<(), String> {
         query("DELETE FROM reviews WHERE review_id = $1")
-            .bind(review_id as i64)
+            .bind(review_id as i32)
             .execute(&self.pool)
             .await
             .map_err(|e| e.to_string())?;
@@ -415,8 +415,8 @@ impl From<PgRow> for User {
 impl From<PgRow> for Order {
     fn from(row: PgRow) -> Self {
         Order {
-            order_id: row.get::<i64, _>("order_id") as usize,
-            user_id: row.get::<i64, _>("user_id") as usize,
+            order_id: row.get::<i32, _>("order_id") as usize,
+            user_id: row.get::<i32, _>("user_id") as usize,
             order_name: row.get("order_name"),
             order_desc: row.get("order_desc"),
             price: row.get("price"),
@@ -429,9 +429,9 @@ impl From<PgRow> for Order {
 impl From<PgRow> for Offer {
     fn from(row: PgRow) -> Self {
         Offer {
-            offer_id: row.get::<i64, _>("offer_id") as usize,
-            order_id: row.get::<i64, _>("order_id") as usize,
-            user_id: row.get::<i64, _>("user_id") as usize,
+            offer_id: row.get::<i32, _>("offer_id") as usize,
+            order_id: row.get::<i32, _>("order_id") as usize,
+            user_id: row.get::<i32, _>("user_id") as usize,
             status: row.get("status"),
             created_at: row.get("created_at"),
         }
@@ -441,9 +441,9 @@ impl From<PgRow> for Offer {
 impl From<PgRow> for Review {
     fn from(row: PgRow) -> Self {
         Review {
-            review_id: row.get::<i64, _>("review_id") as usize,
-            user_reviewed: row.get::<i64, _>("user_reviewed") as usize,
-            user_reviewing: row.get::<i64, _>("user_reviewing") as usize,
+            review_id: row.get::<i32, _>("review_id") as usize,
+            user_reviewed: row.get::<i32, _>("user_reviewed") as usize,
+            user_reviewing: row.get::<i32, _>("user_reviewing") as usize,
             content: row.get("content"),
             rating: row.get::<i8, _>("rating") as u8,
             created_at: row.get("created_at"),
