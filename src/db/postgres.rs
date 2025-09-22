@@ -1,7 +1,10 @@
+use num_traits::ToPrimitive;
 use sqlx::{
     migrate,
     postgres::{PgListener, PgRow},
-    query, PgPool, Row,
+    query,
+    types::Decimal,
+    PgPool, Row,
 };
 
 use crate::db::*;
@@ -419,7 +422,7 @@ impl From<PgRow> for Order {
             user_id: row.get::<i32, _>("user_id") as usize,
             order_name: row.get("order_name"),
             order_desc: row.get("order_desc"),
-            price: row.get("price"),
+            price: row.get::<Decimal, _>("price").to_f64().unwrap(),
             image_urls: row.get("image_urls"),
             created_at: row.get("created_at"),
         }
