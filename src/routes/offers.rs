@@ -5,11 +5,15 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
+
+use resend_rs::types::CreateEmailBaseOptions;
+use resend_rs::{Resend, Result};
+
 use serde::Deserialize;
 
 use crate::{
     auth::Claims,
-    db::{postgres::PostgresDb, Db, OfferInput},
+    db::{postgres::PostgresDb, Db, OfferInput, Order},
     AppState,
 };
 
@@ -29,9 +33,31 @@ async fn create_offer_handler<D: Db>(
     Json(offer): Json<OfferInput>,
 ) -> impl IntoResponse {
     match db.create_offer(offer, claims.sub).await {
-        Ok(offer) => (StatusCode::CREATED, Json(offer)).into_response(),
+        Ok(offer) => {
+            let who = db.get_user_by_id(offer.user_id).await.unwrap().unwrap();
+            let what = db.get_order_by_id(offer.order_id).await.unwrap().unwrap();
+            let orderer = db.get_user_by_id(what.user_id).await.unwrap().unwrap();
+            send_email(&orderer.email, &who.username, &what.order_name).await;
+            (StatusCode::CREATED, Json(offer)).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
     }
+}
+
+async fn send_email(recipient: &str, who: &str, what: &str) {
+    let resend = Resend::new("re_QL2cfvh1_PZhaRoYyPicsWSmNvgW2ca8P");
+
+    let from = "techni@resend.dev";
+    let to = [recipient];
+    let subject = "Ktos otpowiedzial na twoje ogloszenie";
+
+    let email = CreateEmailBaseOptions::new(from, to, subject).with_html(&format!(
+        "{} odpowiedzial na twoje zgloszenie: {}",
+        who, what
+    ));
+
+    let _email = resend.emails.send(email).await;
+    println!("{:?}", _email);
 }
 
 async fn get_offers_by_user_handler<D: Db>(
