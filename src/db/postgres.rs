@@ -16,11 +16,6 @@ pub struct PostgresDb {
 
 impl PostgresDb {
     pub async fn new(pool: PgPool) -> Self {
-        migrate!()
-            .run(&pool)
-            .await
-            .expect("Failed to run migrations");
-
         Self { pool }
     }
 }

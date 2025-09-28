@@ -12,16 +12,15 @@ CREATE TABLE orders (
     order_name VARCHAR(100) NOT NULL,
     order_desc TEXT NOT NULL,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
-    image_urls VARCHAR(100) ARRAY NOT NULL DEFAULT '{}' CHECK (NULL != ANY(image_urls)),
+    image_urls VARCHAR(100) ARRAY NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE offer_status AS ENUM ('pending', 'accepted', 'declined');
 CREATE TABLE offers (
     offer_id SERIAL PRIMARY KEY,
-    order_id INT NOT NULL REFERENCES offers(offer_id) ON DELETE CASCADE,
+    order_id INT NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
     user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    status offer_status NOT NULL DEFAULT 'pending',
+    status VARCHAR(8) NOT NULL DEFAULT 'pending',
     ordered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
