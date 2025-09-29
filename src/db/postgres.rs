@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use num_traits::ToPrimitive;
 use sqlx::{
@@ -7,7 +7,10 @@ use sqlx::{
     types::Decimal,
     PgPool, Row,
 };
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+    sync::mpsc::{self, Receiver, Sender},
+    task::JoinHandle,
+};
 
 use crate::db::*;
 
@@ -15,6 +18,7 @@ use crate::db::*;
 pub struct PostgresDb {
     pool: PgPool,
     register_listener_tx: Sender<(usize, Sender<Message>)>,
+    _listener_thread: Arc<JoinHandle<()>>,
 }
 
 impl PostgresDb {
@@ -22,7 +26,7 @@ impl PostgresDb {
         let (tx, mut rx) = mpsc::channel(100);
 
         let pool_clone = pool.clone();
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let mut listeners = HashMap::<usize, Sender<Message>>::new();
 
             let mut db_listener = PgListener::connect_with(&pool_clone).await.unwrap();
@@ -48,6 +52,7 @@ impl PostgresDb {
         Self {
             pool,
             register_listener_tx: tx,
+            _listener_thread: Arc::new(handle),
         }
     }
 }
