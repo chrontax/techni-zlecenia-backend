@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use axum::Router;
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
@@ -32,7 +34,7 @@ async fn main(
         .merge(orders::router())
         .merge(reviews::router())
         .nest("/user", user::router())
-        .layer(CorsLayer::permissive())
+        .layer(CorsLayer::permissive().max_age(Duration::from_secs(60) * 60))
         .with_state(AppState {
             db: PostgresDb::new(pool).await,
         });
