@@ -33,17 +33,24 @@ impl PostgresDb {
             db_listener.listen("messages").await.unwrap();
 
             loop {
-                if let Ok((user_id, tx)) = rx.try_recv() {
-                    listeners.insert(user_id, tx);
-                }
-                if let Ok(notification) = db_listener.recv().await {
-                    let message = serde_json::from_str::<Message>(notification.payload()).unwrap();
-
-                    if let Some(tx) = listeners.get(&message.sender_id) {
-                        tx.send(message.clone()).await.unwrap();
+                tokio::select! {
+                    Some((user_id, tx)) = rx.recv() => {
+                        listeners.insert(user_id, tx);
                     }
-                    if let Some(tx) = listeners.get(&message.receiver_id) {
-                        tx.send(message).await.unwrap();
+                    Ok(notification) = db_listener.recv() => {
+                        match serde_json::from_str::<Message>(notification.payload()) {
+                            Ok(message) => {
+                                if let Some(tx) = listeners.get(&message.sender_id) {
+                                    let _ = tx.send(message.clone()).await;
+                                }
+                                if let Some(tx) = listeners.get(&message.receiver_id) {
+                                    let _ = tx.send(message).await;
+                                }
+                            }
+                            Err(err) => {
+                                eprintln!("Failed to parse message: {}", err);
+                            }
+                        }
                     }
                 }
             }
