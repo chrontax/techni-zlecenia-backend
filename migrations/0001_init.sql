@@ -58,8 +58,7 @@ BEGIN
         'sent_at', NEW.sent_at
     );
 
-    PERFORM pg_notify(NEW.receiver_id::text, payload::text);
-    PERFORM pg_notify(NEW.sender_id::text, payload::text);
+    PERFORM pg_notify('messages', payload::text);
 
     RETURN NULL;
 END;

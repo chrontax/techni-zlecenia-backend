@@ -1,22 +1,54 @@
+use std::collections::HashMap;
+
 use num_traits::ToPrimitive;
 use sqlx::{
-    migrate,
     postgres::{PgListener, PgRow},
     query,
     types::Decimal,
     PgPool, Row,
 };
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 use crate::db::*;
 
 #[derive(Clone)]
 pub struct PostgresDb {
     pool: PgPool,
+    register_listener_tx: Sender<(usize, Sender<Message>)>,
 }
 
 impl PostgresDb {
     pub async fn new(pool: PgPool) -> Self {
-        Self { pool }
+        let (tx, mut rx) = mpsc::channel(100);
+
+        let pool_clone = pool.clone();
+        tokio::spawn(async move {
+            let mut listeners = HashMap::<usize, Sender<Message>>::new();
+
+            let mut db_listener = PgListener::connect_with(&pool_clone).await.unwrap();
+            db_listener.listen("messages").await.unwrap();
+
+            loop {
+                if let Ok((user_id, tx)) = rx.try_recv() {
+                    listeners.insert(user_id, tx);
+                }
+                if let Ok(notification) = db_listener.recv().await {
+                    let message = serde_json::from_str::<Message>(notification.payload()).unwrap();
+
+                    if let Some(tx) = listeners.get(&message.sender_id) {
+                        tx.send(message.clone()).await.unwrap();
+                    }
+                    if let Some(tx) = listeners.get(&message.receiver_id) {
+                        tx.send(message).await.unwrap();
+                    }
+                }
+            }
+        });
+
+        Self {
+            pool,
+            register_listener_tx: tx,
+        }
     }
 }
 
@@ -296,14 +328,12 @@ impl Db for PostgresDb {
     }
 
     async fn listen_for_messages(&self, user_id: usize) -> Result<Self::MsgListner, String> {
-        let mut listener = PgListener::connect_with(&self.pool)
+        let (tx, rx) = mpsc::channel(100);
+        self.register_listener_tx
+            .send((user_id, tx))
             .await
             .map_err(|e| e.to_string())?;
-        listener
-            .listen(&user_id.to_string())
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(PostgresMsgListener { listener })
+        Ok(PostgresMsgListener { rx })
     }
 
     async fn create_review(&self, review: ReviewInput) -> Result<Review, String> {
@@ -377,13 +407,15 @@ impl Db for PostgresDb {
 }
 
 pub struct PostgresMsgListener {
-    listener: PgListener,
+    rx: Receiver<Message>,
 }
 
 impl MsgListner for PostgresMsgListener {
     async fn receive(&mut self) -> Result<Message, String> {
-        let notification = self.listener.recv().await.map_err(|e| e.to_string())?;
-        serde_json::from_str(notification.payload()).map_err(|e| e.to_string())
+        self.rx
+            .recv()
+            .await
+            .ok_or_else(|| "Failed to receive message".to_string())
     }
 }
 

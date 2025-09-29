@@ -50,7 +50,7 @@ pub struct OfferInput {
     pub order_id: usize,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Message {
     pub message_id: usize,
     pub sender_id: usize,
