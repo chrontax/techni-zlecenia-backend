@@ -24,3 +24,4 @@ reqwest = { version = "0.12.23", features = ["multipart"] }
 tower-http = { version = "0.6.6", features = ["cors"] }
 num-traits = "0.2.19"
 resend-rs = "0.18.0"
+lettre = "0.11.18"

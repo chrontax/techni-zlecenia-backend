@@ -6,8 +6,9 @@ use axum::{
     Json, Router,
 };
 
-use resend_rs::types::CreateEmailBaseOptions;
-use resend_rs::{Resend, Result};
+use lettre::message::{Message, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{SmtpTransport, Transport};
 
 use serde::Deserialize;
 
@@ -35,6 +36,7 @@ async fn create_offer_handler<D: Db>(
     match db.create_offer(offer, claims.sub).await {
         Ok(offer) => {
             let who = db.get_user_by_id(offer.user_id).await.unwrap().unwrap();
+            dbg!(&who.username);
             let what = db.get_order_by_id(offer.order_id).await.unwrap().unwrap();
             let orderer = db.get_user_by_id(what.user_id).await.unwrap().unwrap();
             send_email(&orderer.email, &who.username, &what.order_name).await;
@@ -45,19 +47,43 @@ async fn create_offer_handler<D: Db>(
 }
 
 async fn send_email(recipient: &str, who: &str, what: &str) {
-    let resend = Resend::new("re_QL2cfvh1_PZhaRoYyPicsWSmNvgW2ca8P");
+    // Build the email
+    let email = Message::builder()
+        .from(
+            "techni zamowienia <technizamowienia@gmail.com>"
+                .parse()
+                .unwrap(),
+        )
+        .to(recipient.parse().unwrap())
+        .subject("Ktos odpowiedzial na twoje ogloszenie")
+        .singlepart(
+            SinglePart::builder()
+                .header(lettre::message::header::ContentType::TEXT_HTML)
+                .body(format!(
+                    "{} odpowiedzial na twoje zgloszenie: {}",
+                    who, what
+                )),
+        )
+        .unwrap();
 
-    let from = "techni@resend.dev";
-    let to = [recipient];
-    let subject = "Ktos otpowiedzial na twoje ogloszenie";
+    // SMTP credentials (use your Gmail address + App Password)
+    let creds = Credentials::new(
+        "technizamowienia".to_string(),
+        "znfbjezwxvremoln".to_string(),
+    );
+    dbg!(recipient);
 
-    let email = CreateEmailBaseOptions::new(from, to, subject).with_html(&format!(
-        "{} odpowiedzial na twoje zgloszenie: {}",
-        who, what
-    ));
+    // Open a remote connection to Gmail
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
+        .credentials(creds)
+        .build();
 
-    let _email = resend.emails.send(email).await;
-    println!("{:?}", _email);
+    // Send the email
+    match mailer.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => eprintln!("Could not send email: {:?}", e),
+    }
 }
 
 async fn get_offers_by_user_handler<D: Db>(
